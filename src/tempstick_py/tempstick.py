@@ -1,12 +1,15 @@
-import http.client
+# import http.client
+import requests
 from decimal import Decimal
 import json
 
 from benedict import benedict
 
-import logging
+from furl import furl
 
-logger = logging.getLogger(__name__)
+# import logging
+
+# logger = logging.getLogger(__name__)
 
 
 class TempStickSensor:
@@ -16,7 +19,7 @@ class TempStickSensor:
         version,
         sensor_id,
         sensor_name,
-        sensor_mac_address,
+        sensor_mac_addr,
         owner_id,
         type,
         alert_interval,
@@ -30,25 +33,26 @@ class TempStickSensor:
         next_checkin,
         ssid,
         offline,
-        alerts,
+        group,
         use_sensor_settings,
         temp_offset,
         humidity_offset,
-        alert_temp_below:Decimal,
-        alert_temp_above:Decimal,
-        alert_humidity_below:Decimal,
-        alert_humidity_above:Decimal,
-        connection_sensivity,
+        connection_sensitivity,
         use_alert_interval,
         use_offset,
         battery_pct,
-        last_messages
+        last_messages,
+        alerts=None,
+        alert_temp_below:Decimal=None,
+        alert_temp_above:Decimal=None,
+        alert_humidity_below:Decimal=None,
+        alert_humidity_above:Decimal=None,
     ) -> None:
         self.id = id
         self.version = version
         self.sensor_id = sensor_id
         self.sensor_name = sensor_name
-        self.sensor_mac_address = sensor_mac_address
+        self.sensor_mac_address = sensor_mac_addr
         self.owner_id = owner_id
         self.type = type
         self.intervals = {
@@ -78,7 +82,7 @@ class TempStickSensor:
             "temperature": (alert_temp_below, alert_temp_above),
             "humidity": (alert_humidity_below, alert_humidity_above)
         }
-        self.connection_sensitivity = connection_sensivity
+        self.connection_sensitivity = connection_sensitivity
         self.use_alert_interval = use_alert_interval
         self.use_offset = use_offset
         self.battery_percent = battery_pct
@@ -99,7 +103,10 @@ class TempStickSensor:
             #     "sensor_id": 
             # }
 
-            return cls(response_b.get_dict("data"))
+            data = response_b.get_dict("data")
+            data.set("last_messages", last_messages)
+
+            return cls(data)
 
 
 class Message:
@@ -159,24 +166,25 @@ class Message:
         return message_list
 
 def get_sensors(api_key:str) -> list[TempStickSensor]:
-    logger.warning("key: {}".format(api_key))
+    # logger.warning("key: {}".format(api_key))
     print(api_key)
     data = make_request(GET_SENSORS, api_key)
 
-    logger.info("data: {}".format(data))
+    # logger.info("data: {}".format(data))
 
     data_b = benedict(data)
 
     sensors_list = []
     for sensor in data_b.get_list("data.items"):
-        sensor_obj = TempStickSensor(**sensor)
+        print("sensor: {}".format(sensor))
+        sensor_obj = TempStickSensor.fromsensor(**sensor)
         sensors_list.append(sensor_obj)
 
     return sensors_list
 
-GET_SENSORS = "api/v1/sensors/all"
-GET_SENSOR = "api/v1/sensors/{}"
-GET_READINGS = "api/v1/sesnosrs/{}/readings"
+GET_SENSORS = "/api/v1/sensors/all"
+GET_SENSOR = "/api/v1/sensors/{}"
+GET_READINGS = "/api/v1/sesnosrs/{}/readings"
 REQUEST_TYPES = [
     GET_SENSORS,
     GET_SENSOR,
@@ -184,19 +192,26 @@ REQUEST_TYPES = [
 ]
 
 def make_request(request_type:REQUEST_TYPES, api_key:str, sensor_id:str = None):
-    print(request_type)
-    conn = http.client.HTTPSConnection("tempstickapi.com")
+    url = furl("https://tempstickapi.com")
+    url_adder = furl(request_type.format(sensor_id))
 
-    headers = {"Content-Type": "application/json", "X-KEY-API": api_key}
+    print("Adder: {}".format(url_adder))
 
-    conn.request("GET", request_type.format(sensor_id), headers = headers)
+    url.join(url, url_adder)
 
-    res = conn.getresponse()
-    print("res: {}".format(res))
-    data_bytes = res.read()
+    print("URL: {}".format(url))
 
-    logger.info("data_bytes: {}".format(data_bytes))
+    payload={}
+    headers = {
+    'X-API-KEY': api_key
+    }
 
-    data_json = json.loads(data_bytes.decode("utf-8"))
+    response = requests.request("GET", url.tostr(), headers=headers, data=payload)
 
-    return data_json
+    response_json = response.json()
+
+    # print(response.json())
+
+    print("sensor_id: {}".format(response_json.get('data')['items'][0]['sensor_id']))
+
+    return response_json
