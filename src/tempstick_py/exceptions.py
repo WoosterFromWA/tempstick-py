@@ -1,11 +1,10 @@
-from ._helpers import debug_print
-
 class TempStickException(Exception):
     """Base class for other exceptions"""
 
     def __init__(self, message="Generic error"):
         self.message = message
         super().__init__(self.message)
+
 
 class FilterRemovesRange(TempStickException):
     """Exception raised when provided filter would filter entire range."""
@@ -30,15 +29,24 @@ class FilterRemovesRange(TempStickException):
 
 
 class ResponseError(Exception):
-    def __init__(self, type:str, message="Invalid response from target.", *args: object) -> None:
+    def __init__(
+        self, type: str, message="Invalid response from target.", *args: object
+    ) -> None:
         self.response_type = type
         self.message = message
         super().__init__(self.message)
 
+
 class InvalidApiKeyError(ResponseError):
     """Exception raised when an invalid API key is used."""
 
-    def __init__(self, type:str, description:str, message="Invalid API key used.", *args: object) -> None:
+    def __init__(
+        self,
+        type: str,
+        description: str,
+        message="Invalid API key used.",
+        *args: object
+    ) -> None:
         self.description = description
         self.type = type
         self.message = message
@@ -48,6 +56,8 @@ class InvalidApiKeyError(ResponseError):
     def __str__(self) -> str:
         # debug_print("type", self.type, self.__name__)
         # print("hello")
-        value = self.message
-        value = "{type}|{description} -> {message}".format(type=self.type, description=self.description, message=self.message)
+        # value = self.message
+        value = "{type}|{description} -> {message}".format(
+            type=self.type, description=self.description, message=self.message
+        )
         return value

@@ -31,6 +31,36 @@ SENSOR = {
     "battery_pct": 100,
 }
 
+SENSOR_2_CHANGES = {
+    "id": "546987",
+    "sensor_id": "898541",
+    "sensor_name": "test sensor 2",
+    "sensor_mac_addr": "6J:IX:3L:ML:WO:ZH",
+}
+
+SENSOR_2 = SENSOR.copy()
+
+print("SENSOR_2 before update: {}".format(SENSOR_2))
+
+SENSOR_2.update(SENSOR_2_CHANGES)
+
+print("SENSOR after SENSOR_2 update: {}".format(SENSOR))
+print("SENSOR_2 after update: {}".format(SENSOR_2))
+
+SENSOR_3_CHANGES = {
+    "id": "651651",
+    "sensor_id": "981694",
+    "sensor_name": "test sensor 3",
+    "sensor_mad_addr": "6J:IX:3L:M1:WO:ZF",
+}
+
+SENSOR_3 = SENSOR.copy()
+
+print("SENSOR after SENSOR_3 assignment: {}".format(SENSOR))
+print("SENSOR_3 before update: {}".format(SENSOR_3))
+
+SENSOR_3.update(SENSOR_3_CHANGES)
+
 GET_SENSOR_DICT = {
     "type": "success",
     "message": "get sensor",
@@ -123,9 +153,24 @@ GET_SENSORS_BASE = {
     }
 }
 
-GET_SENSORS_BASE["data"]["items"][0].update(SENSOR)
+GET_SENSORS_DICT = GET_SENSORS_BASE.copy()
 
-GET_SENSORS_DICT = GET_SENSORS_BASE
+GET_SENSORS_DICT["data"]["items"][0].update(SENSOR)
+
+# GET_SENSORS_DICT = GET_SENSORS_BASE
+
+print("SENSOR_2: {}".format(SENSOR_2))
+
+SENSORS_LIST = [
+    SENSOR_2,
+    SENSOR_3,
+]
+
+GET_SENSORS_MULTIPLE = GET_SENSORS_BASE.copy()
+
+# GET_SENSORS_MULTIPLE["data"]["items"].clear()
+
+GET_SENSORS_MULTIPLE["data"]["items"] = SENSORS_LIST
 
 GET_SENSOR_READING_DICT = {
     "type": "success",
