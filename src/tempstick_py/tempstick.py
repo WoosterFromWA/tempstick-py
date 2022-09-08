@@ -1,113 +1,127 @@
 # import http.client
+# import os
+# from pathlib import Path
+# import environ
+from datetime import datetime
+from email import message
+import json
+from urllib.error import HTTPError
 import requests
 from decimal import Decimal
-import json
+# import json
 
 from benedict import benedict
 
 from furl import furl
 
-# import logging
+from .exceptions import FilterRemovesRange, InvalidApiKeyError
 
-# logger = logging.getLogger(__name__)
+from ._helpers import format_mac, format_datetime, set_attr_from_dict
+
+# import macaddress
+
+# BASE_DIR = Path(__file__).resolve()
+
+# env_path = os.path.join(BASE_DIR, ".env")
+
+# print(env_path)
+
+# environ.Env.read_env(env_path)
+
+GET_SENSORS = "/api/v1/sensors/all"
+GET_SENSOR = "/api/v1/sensors/{}"
+GET_READINGS = "/api/v1/sensors/{}/readings"
+REQUEST_TYPES = [
+    GET_SENSORS,
+    GET_SENSOR,
+    GET_READINGS,
+]
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TempStickSensor:
+    # __slots__ = (
+    #     'sensor_id',
+    #     'sensor_name',
+    #     'sensor_mac_address'
+    # )
+
     def __init__(
         self,
-        id,
-        version,
         sensor_id,
-        sensor_name,
-        sensor_mac_addr,
-        owner_id,
-        type,
-        alert_interval,
-        send_interval,
-        last_temp:Decimal,
-        last_humidity:Decimal,
-        last_voltage,
-        wifi_connect_time,
-        rssi,
-        last_checkin,
-        next_checkin,
-        ssid,
-        offline,
-        group,
-        use_sensor_settings,
-        temp_offset,
-        humidity_offset,
-        connection_sensitivity,
-        use_alert_interval,
-        use_offset,
-        battery_pct,
-        last_messages,
-        alerts=None,
-        alert_temp_below:Decimal=None,
-        alert_temp_above:Decimal=None,
-        alert_humidity_below:Decimal=None,
-        alert_humidity_above:Decimal=None,
+        sensor_name:str = None,
+        sensor_mac_addr:str = None,
     ) -> None:
-        self.id = id
-        self.version = version
         self.sensor_id = sensor_id
         self.sensor_name = sensor_name
-        self.sensor_mac_address = sensor_mac_addr
-        self.owner_id = owner_id
-        self.type = type
-        self.intervals = {
-            "alert_interval": alert_interval,
-            "send_interval": send_interval
-        }
-        self.last_sensor_values = {
-            "temperature": last_temp,
-            "humidity": last_humidity,
-            "voltage": last_voltage
-        }
-        self.wifi_connect_time = wifi_connect_time
-        self.rssi = rssi
-        self.checkins = {
-            "last": last_checkin,
-            "next": next_checkin
-        }
-        self.ssid = ssid
-        self.offline = offline
-        self.alerts = alerts
-        self.use_sensor_settings = use_sensor_settings
-        self.offsets = {
-            "temperature": temp_offset,
-            "humidity": humidity_offset
-        }
-        self.alert_ranges = {
-            "temperature": (alert_temp_below, alert_temp_above),
-            "humidity": (alert_humidity_below, alert_humidity_above)
-        }
-        self.connection_sensitivity = connection_sensitivity
-        self.use_alert_interval = use_alert_interval
-        self.use_offset = use_offset
-        self.battery_percent = battery_pct
-        self.last_messages = last_messages
+        try:
+            self.sensor_mac_address = format(sensor_mac_addr)
+        except AttributeError:
+            self.sensor_mac_address = None
 
-        @classmethod
-        def from_get_sensor(cls, response:dict):
-            response_b = benedict(response)
+    @classmethod
+    def from_get_sensor(cls, sensor:dict):
+        set_attr_from_dict(cls, sensor)
 
-            last_messages_raw = response_b.get_list("data.last_messages")
-            last_messages = Message.fromsensor(last_messages_raw)
+        return cls
 
-            response_b.remove("data.last_messages")
+    @classmethod
+    def get_sensors(cls, api_key:str) -> list:
+        """Return list of sensors."""
+        data = make_request(GET_SENSORS, api_key)
 
-            # kwargs = {
-            #     "id": response_b.get_str("data.id"),
-            #     "version": response_b.get_str("data.version"),
-            #     "sensor_id": 
-            # }
+        data_b = benedict(data)
 
-            data = response_b.get_dict("data")
-            data.set("last_messages", last_messages)
+        sensors_list = []
+        for sensor in data_b.get_list("data.items"):
+            print("sensor_id: {}".format(sensor['sensor_id']))
+            sensor_obj = cls.from_get_sensor(sensor)
+            sensors_list.append(sensor_obj)
 
-            return cls(data)
+        return sensors_list
 
+    def get_readings(self, api_key:str, filter_cutoff:datetime = None) -> list:
+        """Return list of readings, optionally filtered cutoff date
+        
+        :param filter_cutoff: Filter all readings older than this datetime
+        :type filter_cutoff: datetime, optional
+        """
+
+        
+        response = make_request(GET_READINGS, api_key, self.sensor_id)
+
+        print("response: ".format(response))
+
+        data = response.get("data")
+        readings = data.get("readings")
+
+        # print("type(filter_cutoff): {}".format(type(filter_cutoff)))
+        # print("type(start): {}".format(data))
+
+        if filter_cutoff:
+            try:
+                filter_cutoff = format_datetime(filter_cutoff)
+            except TypeError:
+                logger.debug("Filter cutoff already datetime. [{}]".format(filter_cutoff))
+
+            start = format_datetime(data.get("start"))
+            
+            length_before = len(readings)
+            if start < filter_cutoff:
+                readings = [x for x in readings if format_datetime(x.get("sensor_time")) > filter_cutoff]
+                # readings = filter(lambda x: format_datetime(x['sensor_time']) > filter_cutoff, readings)
+
+            length_after = len(readings)
+
+            if length_after == 0:
+                raise FilterRemovesRange(filter_cutoff, range_lower=start, range_upper=format_datetime(data.get("end")))
+            elif (diff := length_before - length_after) > 0:
+                print("{} readings removed.".format(diff))
+
+        return readings
 
 class Message:
     def __init__(
@@ -165,53 +179,65 @@ class Message:
 
         return message_list
 
-def get_sensors(api_key:str) -> list[TempStickSensor]:
-    # logger.warning("key: {}".format(api_key))
-    print(api_key)
-    data = make_request(GET_SENSORS, api_key)
+# def get_sensors(api_key:str) -> list[TempStickSensor]:
+#     # logger.warning("key: {}".format(api_key))
+#     print(api_key)
+#     data = make_request(GET_SENSORS, api_key)
 
-    # logger.info("data: {}".format(data))
+#     # logger.info("data: {}".format(data))
 
-    data_b = benedict(data)
+#     data_b = benedict(data)
 
-    sensors_list = []
-    for sensor in data_b.get_list("data.items"):
-        print("sensor: {}".format(sensor))
-        sensor_obj = TempStickSensor.fromsensor(**sensor)
-        sensors_list.append(sensor_obj)
+#     sensors_list = []
+#     for sensor in data_b.get_list("data.items"):
+#         print("sensor: {}".format(sensor))
+#         sensor_obj = TempStickSensor.fromsensor(**sensor)
+#         sensors_list.append(sensor_obj)
 
-    return sensors_list
+#     return sensors_list
 
-GET_SENSORS = "/api/v1/sensors/all"
-GET_SENSOR = "/api/v1/sensors/{}"
-GET_READINGS = "/api/v1/sesnosrs/{}/readings"
-REQUEST_TYPES = [
-    GET_SENSORS,
-    GET_SENSOR,
-    GET_READINGS,
-]
+
 
 def make_request(request_type:REQUEST_TYPES, api_key:str, sensor_id:str = None):
     url = furl("https://tempstickapi.com")
     url_adder = furl(request_type.format(sensor_id))
 
     print("Adder: {}".format(url_adder))
+    logger.info("Adder: {}".format(url_adder))
 
     url.join(url, url_adder)
-
-    print("URL: {}".format(url))
 
     payload={}
     headers = {
     'X-API-KEY': api_key
     }
 
-    response = requests.request("GET", url.tostr(), headers=headers, data=payload)
+    url_str = url.tostr()
 
-    response_json = response.json()
+    print("URL String: {}".format(url_str))
 
-    # print(response.json())
+    response = requests.get(url_str, headers=headers, data=payload)
 
-    print("sensor_id: {}".format(response_json.get('data')['items'][0]['sensor_id']))
+    try:
+        response.raise_for_status()
+        response_json = response.json()
+
+        print("Response Status: {}".format(response.status_code))
+    except HTTPError as http_err:
+        print('HTTP error occured: {}'.format(http_err))
+        raise
+    except Exception as err:
+        print('Other error occured: {}'.format(err))
+        raise
+
+    if not isinstance(response_json, dict):
+        try:
+            response_json = json.loads(response_json)
+        except ValueError as val_err:
+            print("Could not parse as JSON: {}".format(response_json))
+
+    response_type = response_json.get("type")
+    if response_type == "error":
+        raise InvalidApiKeyError(response_type, response_json.get("message"))
 
     return response_json
