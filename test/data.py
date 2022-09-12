@@ -51,7 +51,7 @@ SENSOR_3_CHANGES = {
     "id": "651651",
     "sensor_id": "981694",
     "sensor_name": "test sensor 3",
-    "sensor_mad_addr": "6J:IX:3L:M1:WO:ZF",
+    "sensor_mac_addr": "6J:IX:3L:M1:WO:ZF",
 }
 
 SENSOR_3 = SENSOR.copy()

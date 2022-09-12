@@ -52,10 +52,12 @@ class TempStickSensor:
 
     def __init__(
         self,
-        sensor_id,
+        id,
+        sensor_id: str,
         sensor_name: str = None,
         sensor_mac_addr: str = None,
     ) -> None:
+        self.id = id
         self.sensor_id = sensor_id
         self.sensor_name = sensor_name
         try:
@@ -71,17 +73,12 @@ class TempStickSensor:
 
     @classmethod
     def get_sensors(cls, api_key: str) -> list:
-        """Return list of sensors."""
+        """Return list of 'TempStickSensor's given API key."""
         data = make_request(GET_SENSORS, api_key)
 
         data_b = benedict(data)
 
         sensors_list = [cls.from_get_sensor(x) for x in data_b.get_list("data.items")]
-        # sensors_list = [lambda x: cls.from_get_sensor(x), data_b.get_list("data.items")]
-        # for sensor in data_b.get_list("data.items"):
-        #     print("sensor_id: {}".format(sensor['sensor_id']))
-        #     sensor_obj = cls.from_get_sensor(sensor)
-        #     sensors_list.append(sensor_obj)
 
         return sensors_list
 
@@ -129,6 +126,15 @@ class TempStickSensor:
 
         return readings
 
+    def get_sensor(self, api_key: str):
+        """Return sensor values."""
+        sensor = make_request(GET_SENSOR, api_key, self.sensor_id)
+
+        sensor_obj = self.from_get_sensor(sensor)
+
+        set_attr_from_dict(self, sensor)
+
+        return self
 
 class Message:
     def __init__(

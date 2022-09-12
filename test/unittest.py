@@ -35,6 +35,7 @@ from .data import (
     GET_SENSORS_DICT,
     GET_SENSOR_READING_DICT,
     GET_SENSORS_MULTIPLE,
+    SENSOR_3_CHANGES,
 )
 
 GET_SENSORS_JSON = json.dumps(GET_SENSORS_DICT)
@@ -95,13 +96,20 @@ class TestSensorApi(unittest.TestCase):
             headers=self.headers,
             json=INVALID_KEY_RESPONSE_JSON,
         )
+        # valid for get_sensor (singular)
+        self.r_mock.get(
+            url="https://tempstickapi.com/api/v1/sensors/{}".format(SENSOR_ID),
+            headers=self.headers,
+            json=SENSOR,
+            match=[matchers.header_matcher({"X-API-KEY": API_KEY})],
+        )
 
-        sensor = TempStickSensor(SENSOR_ID, "test sensor 1")
+        sensor = TempStickSensor(SENSOR.get("id"), SENSOR_ID, SENSOR.get("sensor_name"))
         self.simple_sensor = sensor
 
-        print("{} | setup -> sensor_id: {}".format(logger_name(self), sensor.sensor_id))
+        print("{} | setup -> id: {}".format(logger_name(self), sensor.id))
         print("")
-        print("GET_SENSORS_MULTIPLE_JSON:\n{}".format(GET_SENSORS_MULTIPLE_JSON))
+        # print("GET_SENSORS_MULTIPLE_JSON:\n{}".format(GET_SENSORS_MULTIPLE_JSON))
         # responses.add(
         #     method='GET',
         #     url='https://tempstickapi.com/api/v1/sensors/all',
@@ -133,6 +141,7 @@ class TestSensorApi(unittest.TestCase):
 
         self.assertEqual(data.get("message"), "get sensors")
 
+    @unittest.skip("use multiple instead")
     def test_get_sensors(self):
         print("")
         log = logging.getLogger(logger_name(self))
@@ -159,7 +168,7 @@ class TestSensorApi(unittest.TestCase):
             print("{} | No sensors found.".format(log.name))
             log.debug("No sensors found.")
 
-        self.assertEqual(sensors[-1].sensor_id, SENSOR_ID)
+        self.assertEqual(sensors[-1].sensor_id, SENSOR_3_CHANGES.get("sensor_id"))
 
     def test_get_readings(self):
         print("")
@@ -243,6 +252,18 @@ class TestSensorApi(unittest.TestCase):
         self.assertRaises(
             InvalidApiKeyError, TempStickSensor.get_sensors, "invalid_api_key"
         )
+
+    def test_get_sensor(self):
+        print("")
+
+        logger = logging.getLogger(__name__)
+        log_print(("log_name", logger.name), logger_name(self))
+
+        sensor = self.simple_sensor #TempStickSensor(SENSOR.get("id"), SENSOR.get("sensor_name"), SENSOR.get("sensor_mac_addr"))
+
+        sensor = sensor.get_sensor(API_KEY)
+
+        self.assertEqual(sensor.last_temp, SENSOR.get("last_temp"))
 
 
 def logger_name(test):
