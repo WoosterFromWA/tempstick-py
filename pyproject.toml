@@ -23,13 +23,15 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = []
+dependencies = [
+  "python-benedict",
+  "furl",
+]
 dynamic = ["version"]
 
 [project.urls]
-Documentation = "https://github.com/unknown/tempstick-py#readme"
-Issues = "https://github.com/unknown/tempstick-py/issues"
-Source = "https://github.com/unknown/tempstick-py"
+Issues = "https://github.com/WoosterFromWA/tempstick-py/issues"
+Source = "https://github.com/WoosterFromWA/tempstick-py"
 
 [tool.hatch.version]
 path = "src/tempstick_py/__about__.py"

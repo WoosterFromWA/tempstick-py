@@ -1,21 +1,13 @@
-from datetime import datetime
 import json
 import sys
 import unittest
-import pprint
 
 from benedict import benedict
 
 import responses
 from responses import matchers
 
-import requests
-
 import logging
-
-# from os import environ
-
-# from src.tempstick_py import _helpers, tempstick
 
 from src.tempstick_py.tempstick import (
     TempStickSensor,
@@ -121,14 +113,6 @@ class TestSensorApi(unittest.TestCase):
         self.r_mock.stop()
         self.r_mock.reset()
 
-    @unittest.skip("used to test testing")
-    def test_simple(self):
-        name = logger_name(self)
-        log = logging.getLogger(name)
-        print("Log name: {}".format(log.name))
-        log.debug("Log Name: {}".format(log.name))
-        self.assertEqual(1, 1)
-
     # @responses.activate
     def test_make_request_get_sensors(self):
         print("")
@@ -141,39 +125,15 @@ class TestSensorApi(unittest.TestCase):
 
         self.assertEqual(data.get("message"), "get sensors")
 
-    @unittest.skip("use multiple instead")
-    def test_get_sensors(self):
-        print("")
-        log = logging.getLogger(logger_name(self))
-        sensors = TempStickSensor.get_sensors(API_KEY)
-        if len(sensors) > 0:
-            print("{} | First sensor id: {}".format(log.name, sensors[0].sensor_id))
-            print("{} | Last Checkin: {}".format(log.name, sensors[0].last_checkin))
-            log.debug("First sensor: {}".format(sensors[0]))
-        else:
-            print("{} | No sensors found.".format(log.name))
-            log.debug("No sensors found.")
-
-        self.assertEqual(sensors[0].sensor_id, SENSOR_ID)
-
     def test_get_sensors_multiple(self):
         print("")
         log = logging.getLogger(logger_name(self))
         sensors = TempStickSensor.get_sensors(API_KEY.replace("P", "a"))
-        if len(sensors) > 0:
-            print("{} | First sensor id: {}".format(log.name, sensors[0].sensor_id))
-            print("{} | Last Checkin: {}".format(log.name, sensors[0].last_checkin))
-            log.debug("First sensor: {}".format(sensors[0]))
-        else:
-            print("{} | No sensors found.".format(log.name))
-            log.debug("No sensors found.")
 
         self.assertEqual(sensors[-1].sensor_id, SENSOR_3_CHANGES.get("sensor_id"))
 
     def test_get_readings(self):
         print("")
-        # log = logging.getLogger(logger_name(self))
-        # log.debug("sensor_id: {}".format(SENSOR_ID))
         print("sensor_id: {}".format(SENSOR_ID))
 
         response = make_request(GET_READINGS, API_KEY, SENSOR_ID)
@@ -245,10 +205,6 @@ class TestSensorApi(unittest.TestCase):
 
         logger = {"log_name": logger_name(self)}
 
-        # sensors = TempStickSensor.get_sensors('invalid_api_key')
-
-        # log_print(('sensors[0].get("last_checkin")', sensors[0].get("last_checkin")), **logger)
-
         self.assertRaises(
             InvalidApiKeyError, TempStickSensor.get_sensors, "invalid_api_key"
         )
@@ -259,11 +215,28 @@ class TestSensorApi(unittest.TestCase):
         logger = logging.getLogger(__name__)
         log_print(("log_name", logger.name), logger_name(self))
 
-        sensor = self.simple_sensor #TempStickSensor(SENSOR.get("id"), SENSOR.get("sensor_name"), SENSOR.get("sensor_mac_addr"))
+        sensor = self.simple_sensor
 
         sensor = sensor.get_sensor(API_KEY)
 
         self.assertEqual(sensor.last_temp, SENSOR.get("last_temp"))
+
+    def test_invalid_mac_address(self):
+        print("")
+
+        sensor_test = TempStickSensor(
+            "654981", "981656", "invalid mac test", "ig:e8:4:90:!i:99"
+        )
+
+        self.assertIsNone(sensor_test.sensor_mac_address)
+        # self.assertEqual(sensor.sensor_mac_address, None)
+
+    def test_empty_mac_address(self):
+        print("")
+
+        sensor = self.simple_sensor
+
+        self.assertIsNone(sensor.sensor_mac_address)
 
 
 def logger_name(test):
@@ -282,9 +255,5 @@ def log_print(variable: dict, obj=None, log_name=None):
 
 if __name__ == "__main__":
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-    # log = logging.getLogger(__name__)
-    # print("hello")
-    # logging.getLogger("TestSensorApi.test_make_request_get_sensors").setLevel(logging.DEBUG)
-    # logging.getLogger("TestSensorApi.test_simple").setLevel(logging.DEBUG)
     runner = unittest.TextTestRunner(verbosity=2)
     unittest.main(testRunner=runner)

@@ -31,11 +31,3 @@ def format_datetime(dt: str) -> datetime:
 def set_attr_from_dict(cls, values: dict):
     for key, val in values.items():
         setattr(cls, key, val)
-
-
-def debug_print(var_name, var_value, cls):
-    name = cls.__class__.__name__
-    value = "{parent} | {name}: {value}".format(
-        parent=name, name=var_name, value=var_value
-    )
-    print(value)
