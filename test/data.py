@@ -40,12 +40,12 @@ SENSOR_2_CHANGES = {
 
 SENSOR_2 = SENSOR.copy()
 
-print("SENSOR_2 before update: {}".format(SENSOR_2))
+# print("SENSOR_2 before update: {}".format(SENSOR_2))
 
 SENSOR_2.update(SENSOR_2_CHANGES)
 
-print("SENSOR after SENSOR_2 update: {}".format(SENSOR))
-print("SENSOR_2 after update: {}".format(SENSOR_2))
+# print("SENSOR after SENSOR_2 update: {}".format(SENSOR))
+# print("SENSOR_2 after update: {}".format(SENSOR_2))
 
 SENSOR_3_CHANGES = {
     "id": "651651",
@@ -56,8 +56,8 @@ SENSOR_3_CHANGES = {
 
 SENSOR_3 = SENSOR.copy()
 
-print("SENSOR after SENSOR_3 assignment: {}".format(SENSOR))
-print("SENSOR_3 before update: {}".format(SENSOR_3))
+# print("SENSOR after SENSOR_3 assignment: {}".format(SENSOR))
+# print("SENSOR_3 before update: {}".format(SENSOR_3))
 
 SENSOR_3.update(SENSOR_3_CHANGES)
 
@@ -159,7 +159,7 @@ GET_SENSORS_DICT["data"]["items"][0].update(SENSOR)
 
 # GET_SENSORS_DICT = GET_SENSORS_BASE
 
-print("SENSOR_2: {}".format(SENSOR_2))
+# print("SENSOR_2: {}".format(SENSOR_2))
 
 SENSORS_LIST = [
     SENSOR_2,
@@ -722,5 +722,23 @@ INVALID_KEY_RESPONSE = {
     "message": "Invalid X-API-KEY",
     "data": {
         "key": "invalid-api-key"
+    }
+}
+
+UPDATED_SETTINGS = {
+    "type": "success",
+    "message": "update sensor",
+    "data": {
+        "sensor_name": "test name",
+        "use_alert_interval": "1",
+        "send_interval": 1800,
+        "alert_interval": 600,
+        "connection_sensitivity": "2",
+        "use_offset": "0",
+        "temp_offset": "0",
+        "humidity_offset": "0",
+        "alert_temp_below": "21.11",
+        "alert_temp_above": "25",
+        "alert_humidity_above": "50"
     }
 }

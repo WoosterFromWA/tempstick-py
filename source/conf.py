@@ -1,5 +1,6 @@
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath("../"))
 sys.path.insert(0, os.path.abspath("../src"))
 
@@ -13,14 +14,14 @@ from tempstick_py.__about__ import __version__
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'tempstick-py'
-copyright = '2022, Karl Wooster'
-author = 'Karl Wooster'
+project = "tempstick-py"
+copyright = "2022, Karl Wooster"
+author = "Karl Wooster"
 version = __version__
 release = version
 
 substitutions = [
-    ('|ProjectVersion|', version),
+    ("|ProjectVersion|", version),
 ]
 
 # -- General configuration ---------------------------------------------------
@@ -32,18 +33,15 @@ extensions = [
     "sphinx.ext.autosectionlabel",
 ]
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 exclude_patterns = []
 
 autodoc_member_order = "bysource"
 
 
-
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'sphinx_rtd_theme'
-html_static_path = ['_static']
-html_js_files = [
-    "https://kit.fontawesome.com/353d0eb326.js"
-]
+html_theme = "sphinx_rtd_theme"
+html_static_path = ["_static"]
+html_js_files = ["https://kit.fontawesome.com/353d0eb326.js"]

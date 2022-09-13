@@ -1,5 +1,6 @@
 """Module that interfaces with the https://tempstickapi.com interface"""
 from datetime import datetime
+from doctest import REPORT_UDIFF
 import json
 from urllib.error import HTTPError
 import requests
@@ -12,13 +13,15 @@ from .exceptions import FilterRemovesRange, InvalidApiKeyError
 
 from ._helpers import format_mac, format_datetime, set_attr_from_dict
 
-GET_SENSORS = "/api/v1/sensors/all"
-GET_SENSOR = "/api/v1/sensors/{}"
-GET_READINGS = "/api/v1/sensors/{}/readings"
+GET_SENSORS = "GET", "/api/v1/sensors/all"
+GET_SENSOR = "GET", "/api/v1/sensors/{sensor_id}"
+GET_READINGS = "GET", "/api/v1/sensors/{sensor_id}/readings"
+UPDATE_SENSOR_SETTINGS = "POST", "api/v1/sensor/{sensor_id}"
 REQUEST_TYPES = [
     GET_SENSORS,
     GET_SENSOR,
     GET_READINGS,
+    UPDATE_SENSOR_SETTINGS,
 ]
 
 import logging
@@ -28,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class TempStickSensor:
     """Object representing a Temperature Stick
-    
+
     :param id: ID of the sensor; not to be confused with `sensor_id`; provided by the API
     :type id: str, required
     :param sensor_id: Sensor ID, also provided by the API
@@ -38,6 +41,7 @@ class TempStickSensor:
     :param sensor_mac_address: MAC address of device; attribute will be none if invalid
     :type sensor_mac_address: str, optional
     """
+
     # __slots__ = ("id" "sensor_id", "sensor_name", "sensor_mac_address")
 
     def __init__(
@@ -61,7 +65,7 @@ class TempStickSensor:
     @classmethod
     def from_get_sensor(cls, sensor: dict):
         """Return :class:`TempStickSensor` given JSON/dict input.
-        
+
         :param sensor: dict of sensor properties obtained from API; must include required properties of class
         :type sensor: dict, required
         :return: sensor object
@@ -74,7 +78,7 @@ class TempStickSensor:
     @classmethod
     def get_sensors(cls, api_key: str) -> list:
         """Return list of :class:`TempStickSensor` s given API key.
-        
+
         :param api_key: API key obtained from https://tempstick.com 's dashboard
         :type api_key: str, required
         :return: list of sensor objects
@@ -136,7 +140,7 @@ class TempStickSensor:
 
     def get_sensor(self, api_key: str):
         """Update :class:`TempStickSensor` with data from API
-        
+
         :param api_key: API key obtained from https://tempstick.com 's dashboard
         :type api_key: str, required
         """
@@ -148,10 +152,78 @@ class TempStickSensor:
 
         return self
 
+    def update_sensor_settings(self, api_key: str, settings: dict):
+        """Post new settings to sensor
 
-def make_request(request_type: REQUEST_TYPES, api_key: str, sensor_id: str = None):
+        :param api_key: API key obtained from https://tempstick.com 's dashboard
+        :type api_key: str, required
+        :param settings: dictionary containing any settings to be updated; see docs for available settings
+        :type settings: dict, required
+        """
+        update = make_request(
+            UPDATE_SENSOR_SETTINGS, api_key, sensor_id=self.sensor_id, settings=settings
+        )
+
+        set_attr_from_dict(self, update.get("data"))
+
+        return update.get("message")
+
+
+def api_post(
+    request_type: REQUEST_TYPES, api_key: str, sensor_id: str, payload: dict
+) -> dict:
+    """Update data using API POST"""
+    url = furl("https://tempstickapi.com")
+    method, request_type = request_type
+    url_adder = furl(request_type.format(sensor_id))
+
+    url.join(url, url_adder)
+
+    payload = {
+        "sensor_name": "Network Closet",
+        "use_alert_interval": "1",
+        "send_interval": "1800",
+        "alert_interval": "600",
+        "connection_sensitivity": "2",
+        "use_offset": "0",
+        "temp_offset": "0",
+        "humidity_offset": "0",
+        "alert_temp_below": "21.11",
+        "alert_temp_above": "25",
+        "alert_humidity_above": "50",
+    }
+
+
+def normalize_settings(sensor: TempStickSensor, settings: dict) -> dict:
+    settings_b = benedict(settings)
+
+    required_settings = [
+        ("sensor_name", "sensor_name"),
+        ("use_alert_interval", "use_alert_interval"),
+        ("send_interval", "send_interval"),
+        ("connection_sensitivity", "connection_sensitivity"),
+        ("use_offset", "use_offset"),
+        ("temp_offset", "temp_offset"),
+        ("humidity_offset", "humidity_offset"),
+    ]
+
+    new_dict = {}
+    for s, a in required_settings:
+        attr = getattr(sensor, a, None)
+        new_dict[s] = settings_b.get_str(s, attr)
+
+    return new_dict
+
+
+def make_request(
+    request_type: REQUEST_TYPES,
+    api_key: str,
+    sensor_id: str = None,
+    sensor: TempStickSensor = None,
+    settings: dict = None,
+):
     """Return data from API request
-    
+
     :param request_type: which API call is being made; api/v1/sensors/all, api/v1/sensors/{sensor_id}, api/v1/sensors/{sensor_id}/readings
     :type request_type: str, required
     :param api_key: API key obtained from https://tempstick.com 's dashboard
@@ -161,22 +233,29 @@ def make_request(request_type: REQUEST_TYPES, api_key: str, sensor_id: str = Non
     :return: API response, parsed as required
     :rtype: json
     """
+    method, request_type = request_type
+
     url = furl("https://tempstickapi.com")
-    url_adder = furl(request_type.format(sensor_id))
+    url_adder = furl(request_type.format(sensor_id=sensor_id))
 
     print("Adder: {}".format(url_adder))
     logger.info("Adder: {}".format(url_adder))
 
     url.join(url, url_adder)
 
-    payload = {}
+    # payload = {}
     headers = {"X-API-KEY": api_key}
 
     url_str = url.tostr()
 
     print("URL String: {}".format(url_str))
 
-    response = requests.get(url_str, headers=headers, data=payload)
+    if method == "GET":
+        payload = {}
+        response = requests.get(url_str, headers=headers, data=payload)
+    elif method == "POST":
+        payload = normalize_settings(sensor, settings)
+        response = requests.post(url_str, data=payload, headers=headers)
 
     try:
         response.raise_for_status()

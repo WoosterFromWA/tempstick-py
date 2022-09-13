@@ -10,12 +10,14 @@ from responses import matchers
 import logging
 
 from src.tempstick_py.tempstick import (
+    UPDATE_SENSOR_SETTINGS,
     TempStickSensor,
     make_request,
     GET_SENSORS,
     GET_SENSOR,
     GET_READINGS,
     REQUEST_TYPES,
+    normalize_settings,
 )
 from src.tempstick_py._helpers import format_mac, format_datetime
 from src.tempstick_py.exceptions import FilterRemovesRange, InvalidApiKeyError
@@ -28,6 +30,7 @@ from .data import (
     GET_SENSOR_READING_DICT,
     GET_SENSORS_MULTIPLE,
     SENSOR_3_CHANGES,
+    UPDATED_SETTINGS,
 )
 
 GET_SENSORS_JSON = json.dumps(GET_SENSORS_DICT)
@@ -94,6 +97,11 @@ class TestSensorApi(unittest.TestCase):
             headers=self.headers,
             json=SENSOR,
             match=[matchers.header_matcher({"X-API-KEY": API_KEY})],
+        )
+        # valid for update_sensor POST
+        self.r_mock.post(
+            url="https://tempstickapi.com/api/v1/sensor/{}".format(SENSOR_ID),
+            json=UPDATED_SETTINGS,
         )
 
         sensor = TempStickSensor(SENSOR.get("id"), SENSOR_ID, SENSOR.get("sensor_name"))
@@ -237,6 +245,57 @@ class TestSensorApi(unittest.TestCase):
         sensor = self.simple_sensor
 
         self.assertIsNone(sensor.sensor_mac_address)
+
+    def test_normalize_settings(self):
+        print("")
+
+        sensor = self.simple_sensor
+
+        settings_in = {
+            "sensor_name": "test name",
+            "use_alert_interval": "1",
+            "send_interval": "1800",
+            "alert_interval": "600",
+            "connection_sensitivity": "2",
+            "use_offset": "0",
+            "temp_offset": "0",
+            "humidity_offset": "0",
+            "alert_temp_below": "21.11",
+            "alert_temp_above": "25",
+            "alert_humidity_above": "50",
+        }
+
+        settings_new = normalize_settings(sensor, settings_in)
+
+        self.assertEqual(settings_new.get("sensor_name"), "test name")
+
+    def test_update_settings(self):
+        print("")
+
+        logger = logging.getLogger(__name__)
+        log_print(("log_name", logger.name), logger_name(self))
+
+        sensor = self.simple_sensor
+
+        settings_in = {
+            "sensor_name": "test name",
+            "use_alert_interval": "1",
+            "send_interval": "1800",
+            "alert_interval": "600",
+            "connection_sensitivity": "2",
+            "use_offset": "0",
+            "temp_offset": "0",
+            "humidity_offset": "0",
+            "alert_temp_below": "21.11",
+            "alert_temp_above": "25",
+            "alert_humidity_above": "50",
+        }
+
+        update = sensor.update_sensor_settings(API_KEY, settings_in)
+
+        log_print({"name": "update", "value": update}, sensor, logger.name)
+
+        self.assertEqual(sensor.sensor_name, "test name")
 
 
 def logger_name(test):
