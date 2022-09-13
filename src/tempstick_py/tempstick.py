@@ -1,3 +1,4 @@
+"""Module that interfaces with the https://tempstickapi.com interface"""
 from datetime import datetime
 import json
 from urllib.error import HTTPError
@@ -26,6 +27,17 @@ logger = logging.getLogger(__name__)
 
 
 class TempStickSensor:
+    """Object representing a Temperature Stick
+    
+    :param id: ID of the sensor; not to be confused with `sensor_id`; provided by the API
+    :type id: str, required
+    :param sensor_id: Sensor ID, also provided by the API
+    :type sensor_id: str, required
+    :param sensor_name: Name of sensor; from API, can be specified in their dashboard
+    :type sensor_name: str, optional
+    :param sensor_mac_address: MAC address of device; attribute will be none if invalid
+    :type sensor_mac_address: str, optional
+    """
     # __slots__ = ("id" "sensor_id", "sensor_name", "sensor_mac_address")
 
     def __init__(
@@ -48,13 +60,26 @@ class TempStickSensor:
 
     @classmethod
     def from_get_sensor(cls, sensor: dict):
+        """Return :class:`TempStickSensor` given JSON/dict input.
+        
+        :param sensor: dict of sensor properties obtained from API; must include required properties of class
+        :type sensor: dict, required
+        :return: sensor object
+        :rtype: :class:`TempStickSensor`
+        """
         set_attr_from_dict(cls, sensor)
 
         return cls
 
     @classmethod
     def get_sensors(cls, api_key: str) -> list:
-        """Return list of 'TempStickSensor's given API key."""
+        """Return list of :class:`TempStickSensor` s given API key.
+        
+        :param api_key: API key obtained from https://tempstick.com 's dashboard
+        :type api_key: str, required
+        :return: list of sensor objects
+        :rtype: list[:class:`TempStickSensor`]
+        """
         data = make_request(GET_SENSORS, api_key)
 
         data_b = benedict(data)
@@ -68,6 +93,8 @@ class TempStickSensor:
 
         :param filter_cutoff: Filter all readings older than this datetime
         :type filter_cutoff: datetime, optional
+        :return: list of reading dicts
+        :rtype: list[dict]
         """
         response = make_request(GET_READINGS, api_key, self.sensor_id)
 
@@ -108,10 +135,14 @@ class TempStickSensor:
         return readings
 
     def get_sensor(self, api_key: str):
-        """Return sensor values."""
+        """Update :class:`TempStickSensor` with data from API
+        
+        :param api_key: API key obtained from https://tempstick.com 's dashboard
+        :type api_key: str, required
+        """
         sensor = make_request(GET_SENSOR, api_key, self.sensor_id)
 
-        sensor_obj = self.from_get_sensor(sensor)
+        # sensor_obj = self.from_get_sensor(sensor)
 
         set_attr_from_dict(self, sensor)
 
@@ -119,6 +150,17 @@ class TempStickSensor:
 
 
 def make_request(request_type: REQUEST_TYPES, api_key: str, sensor_id: str = None):
+    """Return data from API request
+    
+    :param request_type: which API call is being made; api/v1/sensors/all, api/v1/sensors/{sensor_id}, api/v1/sensors/{sensor_id}/readings
+    :type request_type: str, required
+    :param api_key: API key obtained from https://tempstick.com 's dashboard
+    :type api_key: str, required
+    :param sensor_id: unique sensor_id as obtained from get_sensors; used for individual calls
+    :type sensor_id: str, optional
+    :return: API response, parsed as required
+    :rtype: json
+    """
     url = furl("https://tempstickapi.com")
     url_adder = furl(request_type.format(sensor_id))
 
