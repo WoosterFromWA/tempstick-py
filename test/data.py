@@ -742,3 +742,58 @@ UPDATED_SETTINGS = {
         "alert_humidity_above": "50"
     }
 }
+
+GET_TIMEZONES_SUCCESS = {
+    "type": "success",
+    "message": "get timezones",
+    "data": {
+        "America/New_York": "US Eastern",
+        "America/Chicago": "US Central",
+        "America/Denver": "US Mountain West",
+        "America/Phoenix": "US Mountain (No DST)",
+        "America/Los_Angeles": "US Pacific",
+        "America/Anchorage": "US Alaska",
+        "Pacific/Honolulu": "US Hawaii",
+        "America/Glace_Bay": "(GMT-04:00) Atlantic Time (Canada)",
+        "America/Argentina/Buenos_Aires": "(GMT-03:00) Buenos Aires",
+        "America/Noronha": "(GMT-02:00) Mid-Atlantic",
+        "Atlantic/Azores": "(GMT-01:00) Azores",
+        "Europe/London": "(GMT) London",
+        "Europe/Berlin": "(GMT+01:00) Europe (CET)",
+        "Africa/Algiers": "(GMT+01:00) West Africa",
+        "Africa/Cairo": "(GMT+02:00) Central Africa",
+        "Africa/Addis_Ababa": "(GMT+03:00) East Africa",
+        "Europe/Moscow": "(GMT+03:00) Moscow",
+        "Asia/Dubai": "(GMT+04:00) Abu Dhabi",
+        "Asia/Karachi": "(GMT+05:00) Pakistan",
+        "Asia/Calcutta": "(GMT+05:30) Calcutta",
+        "Asia/Dhaka": "(GMT+06:00) Dhaka",
+        "Asia/Bangkok": "(GMT+07:00) Bangkok",
+        "Asia/Shanghai": "(GMT+08:00) Asia",
+        "Asia/Tokyo": "(GMT+09:00) Tokyo",
+        "Australia/Brisbane": "(GMT+10:00) Brisbane",
+        "Asia/Magadan": "(GMT+11:00) Magadan",
+        "Pacific/Auckland": "(GMT+12:00) Auckland",
+        "Pacific/Tongatapu": "(GMT+13:00) Nuku alofa",
+        "Pacific/Kiritimati": "(GMT+14:00) Kiritimati"
+    }
+}
+
+GET_TIMEZONES_ERROR = {
+    "type": "error",
+    "message": "X-API-KEY is a required header",
+    "data": {
+        "headers": {
+            "X-Https": "1",
+            "Content-Length": "0",
+            "Connection": "keep-alive",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Host": "tempstickapi.com",
+            "Postman-Token": "54c33a0d-26de-4ba8-9ff2-fa7bfe3ce325",
+            "Cache-Control": "no-cache",
+            "Accept": "*/*",
+            "User-Agent": "PostmanRuntime/7.29.2",
+            "Authorization": ""
+        }
+    }
+}

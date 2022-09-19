@@ -1,26 +1,26 @@
 """Module that interfaces with the https://tempstickapi.com interface"""
+import json
 from datetime import datetime
 from doctest import REPORT_UDIFF
-import json
 from urllib.error import HTTPError
+
 import requests
-
 from benedict import benedict
-
 from furl import furl
 
+from ._helpers import format_datetime, format_mac, set_attr_from_dict
 from .exceptions import FilterRemovesRange, InvalidApiKeyError
-
-from ._helpers import format_mac, format_datetime, set_attr_from_dict
 
 GET_SENSORS = "GET", "/api/v1/sensors/all"
 GET_SENSOR = "GET", "/api/v1/sensors/{sensor_id}"
 GET_READINGS = "GET", "/api/v1/sensors/{sensor_id}/readings"
+GET_TIMEZONES = "GET", "/api/v1/user/allowed-timezones"
 UPDATE_SENSOR_SETTINGS = "POST", "api/v1/sensor/{sensor_id}"
 REQUEST_TYPES = [
     GET_SENSORS,
     GET_SENSOR,
     GET_READINGS,
+    GET_TIMEZONES,
     UPDATE_SENSOR_SETTINGS,
 ]
 
@@ -168,30 +168,24 @@ class TempStickSensor:
 
         return update.get("message")
 
+    @classmethod
+    def get_timezones(cls, api_key) -> tuple[str, str, list[dict]]:
+        """Get list of valid timezones
 
-def api_post(
-    request_type: REQUEST_TYPES, api_key: str, sensor_id: str, payload: dict
-) -> dict:
-    """Update data using API POST"""
-    url = furl("https://tempstickapi.com")
-    method, request_type = request_type
-    url_adder = furl(request_type.format(sensor_id))
+        Mostly useful as a simple authentication test.
 
-    url.join(url, url_adder)
+        :param api_key: API key obtained from https://tempstick.com 's dashboard
+        :type api_key: str, required
+        :return: response type (success/error), message, list of dicts of allowed timezones
+        :rtype: tuple(type, message, [{linux: human}])
+        """
+        response = make_request(GET_TIMEZONES, api_key)
 
-    payload = {
-        "sensor_name": "Network Closet",
-        "use_alert_interval": "1",
-        "send_interval": "1800",
-        "alert_interval": "600",
-        "connection_sensitivity": "2",
-        "use_offset": "0",
-        "temp_offset": "0",
-        "humidity_offset": "0",
-        "alert_temp_below": "21.11",
-        "alert_temp_above": "25",
-        "alert_humidity_above": "50",
-    }
+        r_type = response.get("type")
+        r_message = response.get("message")
+        r_data = (data for data in response.get("data"))
+
+        return r_type, r_message, r_data
 
 
 def normalize_settings(sensor: TempStickSensor, settings: dict) -> dict:
@@ -221,7 +215,7 @@ def make_request(
     sensor_id: str = None,
     sensor: TempStickSensor = None,
     settings: dict = None,
-):
+) -> json:
     """Return data from API request
 
     :param request_type: which API call is being made; api/v1/sensors/all, api/v1/sensors/{sensor_id}, api/v1/sensors/{sensor_id}/readings
@@ -238,7 +232,7 @@ def make_request(
     url = furl("https://tempstickapi.com")
     url_adder = furl(request_type.format(sensor_id=sensor_id))
 
-    print("Adder: {}".format(url_adder))
+    print(f"Adder: {url_adder}")
     logger.info("Adder: {}".format(url_adder))
 
     url.join(url, url_adder)

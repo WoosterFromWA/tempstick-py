@@ -1,34 +1,34 @@
 import json
+import logging
 import sys
 import unittest
 
-from benedict import benedict
-
 import responses
+from benedict import benedict
 from responses import matchers
 
-import logging
-
+from src.tempstick_py._helpers import format_datetime, format_mac
+from src.tempstick_py.exceptions import FilterRemovesRange, InvalidApiKeyError
 from src.tempstick_py.tempstick import (
+    GET_READINGS,
+    GET_SENSOR,
+    GET_SENSORS,
+    REQUEST_TYPES,
     UPDATE_SENSOR_SETTINGS,
     TempStickSensor,
     make_request,
-    GET_SENSORS,
-    GET_SENSOR,
-    GET_READINGS,
-    REQUEST_TYPES,
     normalize_settings,
 )
-from src.tempstick_py._helpers import format_mac, format_datetime
-from src.tempstick_py.exceptions import FilterRemovesRange, InvalidApiKeyError
 
 from .data import (
+    GENERATED_API_KEY,
+    GET_SENSOR_READING_DICT,
+    GET_SENSORS_DICT,
+    GET_SENSORS_MULTIPLE,
+    GET_TIMEZONES_ERROR,
+    GET_TIMEZONES_SUCCESS,
     INVALID_KEY_RESPONSE,
     SENSOR,
-    GENERATED_API_KEY,
-    GET_SENSORS_DICT,
-    GET_SENSOR_READING_DICT,
-    GET_SENSORS_MULTIPLE,
     SENSOR_3_CHANGES,
     UPDATED_SETTINGS,
 )
@@ -102,6 +102,20 @@ class TestSensorApi(unittest.TestCase):
         self.r_mock.post(
             url="https://tempstickapi.com/api/v1/sensor/{}".format(SENSOR_ID),
             json=UPDATED_SETTINGS,
+        )
+        # valid for get_timezone GET
+        self.r_mock.get(
+            url="https://tempstickapi.com/api/v1/user/allowed-timezones",
+            headers=self.headers,
+            json=GET_TIMEZONES_SUCCESS,
+            match=[matchers.header_matcher({"X-API-KEY": API_KEY})],
+        )
+        # invalid API KEY for get_timezone GET
+        self.r_mock.get(
+            url="https://tempstickapi.com/api/v1/user/allowed-timezones",
+            headers=self.headers,
+            json=GET_TIMEZONES_ERROR,
+            # match=[matchers.header_matcher({"X-API-KEY": API_KEY})],
         )
 
         sensor = TempStickSensor(SENSOR.get("id"), SENSOR_ID, SENSOR.get("sensor_name"))
@@ -296,6 +310,26 @@ class TestSensorApi(unittest.TestCase):
         log_print({"name": "update", "value": update}, sensor, logger.name)
 
         self.assertEqual(sensor.sensor_name, "test name")
+
+    def test_get_timezones(self):
+        print("")
+
+        logger = logging.getLogger(__name__)
+        log_print(("log_name", logger.name), logger_name(self))
+
+        r_type, r_message, r_data = TempStickSensor.get_timezones(API_KEY)
+
+        self.assertEqual(r_message, "get timezones")
+
+    def test_failed_auth(self):
+        print("")
+
+        logger = logging.getLogger(__name__)
+        log_print(("log_name", logger.name), logger_name(self))
+
+        self.assertRaises(
+            InvalidApiKeyError, TempStickSensor.get_timezones, "invalid_api_key"
+        )
 
 
 def logger_name(test):
